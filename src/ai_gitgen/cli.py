@@ -1,16 +1,96 @@
 # CLI 명령어 처리
+import argparse
+from git_manager import *
+from safety import *
+from prompt import *
+from ai_client import generate_text
+from validator import *
+from config import *
+
 
 def parse_args():
-    pass
+    parser = argparse.ArgumentParser(prog="ai-gitgen")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    commit_parser = subparsers.add_parser("commit")
+    commit_parser.add_argument("--model", default=OPENAI_MODEL)
+    commit_parser.add_argument("--temperature", type=float, default=DEFAULT_TEMP)
+    commit_parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
+    commit_parser.add_argument("--safe-mode", action="store_true")
+
+    pr_parser = subparsers.add_parser("pr")
+    pr_parser.add_argument("--model", default=OPENAI_MODEL)
+    pr_parser.add_argument("--temperature", type=float, default=DEFAULT_TEMP)
+    pr_parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
+    pr_parser.add_argument("--safe-mode", action="store_true")
+
+    return parser.parse_args()
 
 def run_cli():
-    pass
+    args = parse_args()
 
-def run_commit():
-    pass
+    try:
+        if args.command == "commit":
+            result = run_commit(args)
+            print_result(result, mode="commit")
+        elif args.command == "pr":
+            result = run_pr(args)
+            print_result(result, mode="pr")
+    except (RuntimeError, ValueError) as e:
+        print(f"오류: {e}")
 
-def run_pr():
-    pass
+def run_commit(args):
+    check_git_repository()
 
-def print_result():
-    pass
+    diff_text = get_git_diff()
+    status_text = get_git_status()
+    masked_diff = mask_secrets(diff_text)
+
+    if args.safe_mode:
+        masked_diff = limit_diff(masked_diff, max_files=MAX_DIFF_FILES, max_lines=MAX_DIFF_LINES)
+
+    prompt = build_commit_prompt(status_text, masked_diff)
+    raw_result = generate_text(prompt, model=args.model, temperature=args.temperature, max_tokens=args.max_tokens)
+    raw_result = clean_output(raw_result)
+    result = validate_commit_message(raw_result)
+
+    return result
+
+def run_pr(args):
+    check_git_repository()
+
+    diff_text = get_git_diff()
+    status_text = get_git_status()
+    masked_diff = mask_secrets(diff_text)
+
+    if args.safe_mode:
+        masked_diff = limit_diff(masked_diff, max_files=MAX_DIFF_FILES, max_lines=MAX_DIFF_LINES)
+    
+    prompt = build_pr_prompt(status_text, masked_diff)
+    raw_result = generate_text(prompt, model=args.model, temperature=args.temperature, max_tokens=args.max_tokens)
+    raw_result = clean_output(raw_result)
+    title, body = parse_pr_response(raw_result)
+    validate_pr_title(title)
+    validate_pr_body(body)
+
+    return {"title": title, "body": body}
+
+def print_result(result, mode):
+    if mode == "commit":
+        print("--- Commit Message ---")
+        print(result)
+        print("----------------------")
+
+    elif mode == "pr":
+        print("--- PR Title ---")
+        print(result["title"])
+        print()
+        print("--- PR Body ---")
+        print(result["body"])
+        print("----------------")
+
+def parse_pr_response(text):
+    lines = text.strip().splitlines()
+    title = lines[0].strip()
+    body = "\n".join(lines[1:]).strip()
+    return title, body
