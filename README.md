@@ -19,9 +19,6 @@ ai-gitgen/
 │       └── safety.py           # safe-mode / 민감정보 마스킹
 │
 ├── tests/
-│   ├── test_git_manager.py
-│   ├── test_prompt.py
-│   └── test_validator.py
 │
 ├── docs/
 │   └── design.md
