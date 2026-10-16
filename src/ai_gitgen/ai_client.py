@@ -1,21 +1,16 @@
 # AI API 호출
-
-import os
-from dotenv import load_dotenv
 from openai import OpenAI
+from config import (OPENAI_API_KEY,OPENAI_BASE_URL,OPENAI_MODEL,DEFALUT_MAX_TOKEN,DEFAULT_TEMP)
 
-load_dotenv()
+def generate_text(prompt, temperature=DEFAULT_TEMP, max_tokens=DEFALUT_MAX_TOKEN):
 
-def generate_text(prompt, temperature=0.3, max_tokens=500):
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    if not OPENAI_API_KEY:
         raise ValueError("환경변수에 API 키가 설정되지 않았습니다.")
 
-    base_url = os.getenv("OPENAI_BASE_URL")
-    client = OpenAI(api_key=api_key, base_url=base_url)
+    client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
     try:
         response = client.chat.completions.create(
-            model="gpt-5.4-mini",
+            model=OPENAI_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=temperature,
             max_tokens=max_tokens
