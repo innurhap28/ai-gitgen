@@ -1,11 +1,11 @@
 # CLI 명령어 처리
 import argparse
-from git_manager import *
-from safety import *
-from prompt import *
-from ai_client import generate_text
-from validator import *
-from config import *
+from .git_manager import *
+from .safety import *
+from .prompt import *
+from .ai_client import generate_text
+from .validator import *
+from .config import *
 
 
 def parse_args():
@@ -32,17 +32,23 @@ def run_cli():
     try:
         if args.command == "commit":
             result = run_commit(args)
-            print_result(result, mode="commit")
+            if result is not None:
+                print_result(result, mode="commit")
         elif args.command == "pr":
             result = run_pr(args)
-            print_result(result, mode="pr")
+            if result is not None:
+                print_result(result, mode="pr")
     except (RuntimeError, ValueError) as e:
         print(f"오류: {e}")
 
 def run_commit(args):
-    check_git_repository()
+    if not check_git_repository():
+        raise RuntimeError("Git 저장소가 아닙니다.")
 
     diff_text = get_git_diff()
+    if not diff_text.strip():
+        print("스테이징된 변경 사항이 없습니다. git add를 먼저 실행하세요.")
+        return None
     status_text = get_git_status()
     masked_diff = mask_secrets(diff_text)
 
@@ -57,9 +63,13 @@ def run_commit(args):
     return result
 
 def run_pr(args):
-    check_git_repository()
+    if not check_git_repository():
+        raise RuntimeError("Git 저장소가 아닙니다.")
 
     diff_text = get_git_diff()
+    if not diff_text.strip():
+        print("스테이징된 변경 사항이 없습니다. git add를 먼저 실행하세요.")
+        return None
     status_text = get_git_status()
     masked_diff = mask_secrets(diff_text)
 
@@ -70,8 +80,8 @@ def run_pr(args):
     raw_result = generate_text(prompt, model=args.model, temperature=args.temperature, max_tokens=args.max_tokens)
     raw_result = clean_output(raw_result)
     title, body = parse_pr_response(raw_result)
-    validate_pr_title(title)
-    validate_pr_body(body)
+    title = validate_pr_title(title)
+    body = validate_pr_body(body)
 
     return {"title": title, "body": body}
 
@@ -91,6 +101,10 @@ def print_result(result, mode):
 
 def parse_pr_response(text):
     lines = text.strip().splitlines()
+    
+    if len(lines) < 2:
+        raise ValueError("AI의 PR 응답 형식이 올바르지 않습니다.")
+    
     title = lines[0].strip()
     body = "\n".join(lines[1:]).strip()
     return title, body

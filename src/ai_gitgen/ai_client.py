@@ -1,6 +1,6 @@
 # AI API 호출
 from openai import OpenAI
-from config import (OPENAI_API_KEY,OPENAI_BASE_URL,OPENAI_MODEL)
+from .config import (OPENAI_API_KEY,OPENAI_BASE_URL,OPENAI_MODEL)
 
 def generate_text(prompt, model, temperature, max_tokens):
 

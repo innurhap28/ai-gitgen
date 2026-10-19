@@ -6,7 +6,7 @@ def main():
     try:
         run_cli()
     except (KeyboardInterrupt, EOFError):
-        pass
+        print("")
 
 if __name__ == "__main__":
     main()
