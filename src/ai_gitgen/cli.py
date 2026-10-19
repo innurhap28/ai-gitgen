@@ -6,7 +6,7 @@ from .prompt import *
 from .ai_client import generate_text
 from .validator import *
 from .config import *
-
+from .output_generator import generate_with_validation
 
 def parse_args():
     parser = argparse.ArgumentParser(prog="ai-gitgen")
@@ -56,9 +56,14 @@ def run_commit(args):
         masked_diff = limit_diff(masked_diff, max_files=MAX_DIFF_FILES, max_lines=MAX_DIFF_LINES)
 
     prompt = build_commit_prompt(status_text, masked_diff)
-    raw_result = generate_text(prompt, model=args.model, temperature=args.temperature, max_tokens=args.max_tokens)
-    raw_result = clean_output(raw_result)
-    result = validate_commit_message(raw_result)
+    result = generate_with_validation(
+        prompt=prompt,
+        validator=validate_commit_message,
+        model=args.model,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+        ask_retry=ask_retry,
+    )
 
     return result
 
@@ -77,13 +82,16 @@ def run_pr(args):
         masked_diff = limit_diff(masked_diff, max_files=MAX_DIFF_FILES, max_lines=MAX_DIFF_LINES)
     
     prompt = build_pr_prompt(status_text, masked_diff)
-    raw_result = generate_text(prompt, model=args.model, temperature=args.temperature, max_tokens=args.max_tokens)
-    raw_result = clean_output(raw_result)
-    title, body = parse_pr_response(raw_result)
-    title = validate_pr_title(title)
-    body = validate_pr_body(body)
+    result = generate_with_validation(
+        prompt=prompt,
+        validator=validate_pr_response,
+        model=args.model,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+        ask_retry=ask_retry,
+    )
 
-    return {"title": title, "body": body}
+    return result
 
 def print_result(result, mode):
     if mode == "commit":
@@ -99,12 +107,7 @@ def print_result(result, mode):
         print(result["body"])
         print("----------------")
 
-def parse_pr_response(text):
-    lines = text.strip().splitlines()
-    
-    if len(lines) < 2:
-        raise ValueError("AI의 PR 응답 형식이 올바르지 않습니다.")
-    
-    title = lines[0].strip()
-    body = "\n".join(lines[1:]).strip()
-    return title, body
+def ask_retry(error):
+    print(f"검증 실패: {error}")
+    answer = input("추가 API 요청으로 재생성할까요? [y/n]: ").strip().lower()
+    return answer == "y"

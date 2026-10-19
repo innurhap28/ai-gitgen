@@ -86,3 +86,21 @@ def clean_output(text):
     text = re.sub(r"\n?```\s*$", "", text)
 
     return text.strip()
+
+def parse_pr_response(text):
+    lines = text.strip().splitlines()
+
+    if len(lines) < 2:
+        raise ValueError("AI의 PR 응답 형식이 올바르지 않습니다.")
+
+    title = lines[0].strip()
+    body = "\n".join(lines[1:]).strip()
+
+    return title, body
+
+def validate_pr_response(text):
+    title, body = parse_pr_response(text)
+    title = validate_pr_title(title)
+    body = validate_pr_body(body)
+
+    return {"title": title, "body": body}

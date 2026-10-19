@@ -66,3 +66,28 @@ TITLE: PR 제목
 ## How to Test
 - 변경 사항을 검증할 수 있는 테스트 방법
 """.strip()
+
+
+
+def build_retry_prompt(original_prompt, previous_result, error):
+    return f"""
+{original_prompt}
+
+Your previous response failed validation.
+
+Validation error:
+{error}
+
+Previous response:
+{previous_result}
+
+Regenerate the entire response while correcting the validation error.
+
+To avoid exceeding the output token limit:
+- Keep the response concise and remove unnecessary explanations.
+- Reduce the number of bullets and keep each bullet short.
+- Preserve all required sections, headings, and formatting.
+- Do not omit any required section just to shorten the response.
+- Do not end the response in the middle of a sentence or bullet.
+- Output only the requested result without additional explanations.
+"""
