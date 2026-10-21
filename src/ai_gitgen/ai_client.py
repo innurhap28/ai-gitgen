@@ -8,15 +8,14 @@ def generate_text(prompt, model, temperature, max_tokens):
         raise ValueError("환경변수에 API 키가 설정되지 않았습니다.")
 
     client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature,
-            max_tokens=max_tokens
-        )
-    except Exception as e:
-        raise RuntimeError("AI API 호출에 실패했습니다.") from e
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=temperature,
+        max_tokens=max_tokens
+    )
+
 
     content = response.choices[0].message.content
     if not content or not content.strip():

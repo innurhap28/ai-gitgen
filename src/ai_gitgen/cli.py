@@ -1,5 +1,6 @@
 # CLI 명령어 처리
 import argparse
+from openai import AuthenticationError, APIConnectionError, RateLimitError
 from .git_manager import *
 from .safety import *
 from .prompt import *
@@ -38,8 +39,17 @@ def run_cli():
             result = run_pr(args)
             if result is not None:
                 print_result(result, mode="pr")
+        return 0
+    
+    except AuthenticationError:
+        print("오류: API 인증에 실패했습니다. API 키를 확인하세요.")
+    except APIConnectionError:
+        print("오류: 서버에 연결할 수 없습니다. 네트워크를 확인하세요.")
+    except RateLimitError:
+        print("오류: API 사용 한도에 도달했습니다. 사용량과 결제 상태를 확인하세요.")
     except (RuntimeError, ValueError) as e:
         print(f"오류: {e}")
+    return 1
 
 def run_commit(args):
     if not check_git_repository():
@@ -98,6 +108,7 @@ def print_result(result, mode):
         print("--- Commit Message ---")
         print(result)
         print("----------------------")
+        print("\n위 커밋 메시지를 복사한 뒤 내용을 검토하고 적용하세요.")
 
     elif mode == "pr":
         print("--- PR Title ---")
@@ -106,6 +117,7 @@ def print_result(result, mode):
         print("--- PR Body ---")
         print(result["body"])
         print("----------------")
+        print("\nAI가 생성한 초안입니다. 내용과 테스트 결과를 검토한 뒤 사용하세요.")
 
 def ask_retry(error):
     print(f"검증 실패: {error}")

@@ -1,12 +1,18 @@
 # 프로그램 진입점
-
+import sys
 from src.ai_gitgen.cli import run_cli
+
 
 def main():
     try:
-        run_cli()
-    except (KeyboardInterrupt, EOFError):
+        return run_cli()
+    except KeyboardInterrupt:
         print("")
+        return 130
+    except EOFError:
+        print("")
+        return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
