@@ -121,5 +121,11 @@ def print_result(result, mode):
 
 def ask_retry(error):
     print(f"검증 실패: {error}")
-    answer = input("추가 API 요청으로 재생성할까요? [y/n]: ").strip().lower()
-    return answer == "y"
+    while True:
+        answer = input("추가 API 요청으로 재생성할까요? [y/n]: ").strip().lower()
+        if answer == "y":
+            return True
+        elif answer == "n":
+            return False
+        else:
+            print("잘못된 입력입니다. y 또는 n을 입력하세요.")

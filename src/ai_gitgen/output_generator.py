@@ -8,10 +8,10 @@ def generate_with_validation(prompt, validator, model, temperature, max_tokens, 
 
     try:
         return validator(raw_result)
-    except ValueError as exc:
-        validation_error = str(exc)
-        if not ask_retry(exc):
-            raise
+    except ValueError as error:
+        validation_error = str(error)
+        if not ask_retry(error):
+            raise ValueError(f"검증 실패: {error}\n생성 결과:\n{raw_result}") from error
 
     retry_prompt = build_retry_prompt(
         original_prompt=prompt,
@@ -24,4 +24,4 @@ def generate_with_validation(prompt, validator, model, temperature, max_tokens, 
     try:
         return validator(retry_result)
     except ValueError as error:
-        raise ValueError(f"재생성 결과가 검증에 실패했습니다: {error}") from error
+        raise ValueError(f"재생성 결과가 검증에 실패했습니다: {error}\n생성 결과:\n{retry_result}") from error
