@@ -60,12 +60,17 @@ def run_commit(args):
         print("스테이징된 변경 사항이 없습니다. git add를 먼저 실행하세요.")
         return None
     status_text = get_git_status()
+    changed_files = len(status_text.splitlines())
+    print(f"[INFO] Git status 수집 완료: {changed_files}개 파일 변경 감지")
+    diff_lines = len(diff_text.splitlines())
+    print(f"[INFO] Git diff 수집 완료: {diff_lines}줄")
     masked_diff = mask_secrets(diff_text)
 
     if args.safe_mode:
         masked_diff = limit_diff(masked_diff, max_files=MAX_DIFF_FILES, max_lines=MAX_DIFF_LINES)
 
     prompt = build_commit_prompt(status_text, masked_diff)
+    print("[INFO] AI API 요청 중...")
     result = generate_with_validation(
         prompt=prompt,
         validator=validate_commit_message,
@@ -85,13 +90,19 @@ def run_pr(args):
     if not diff_text.strip():
         print("스테이징된 변경 사항이 없습니다. git add를 먼저 실행하세요.")
         return None
+
+    branch_name = get_current_branch()
+    print(f"[INFO] 현재 브랜치: {branch_name}")
+    
     status_text = get_git_status()
     masked_diff = mask_secrets(diff_text)
 
     if args.safe_mode:
         masked_diff = limit_diff(masked_diff, max_files=MAX_DIFF_FILES, max_lines=MAX_DIFF_LINES)
+
     
     prompt = build_pr_prompt(status_text, masked_diff)
+    print("[INFO] AI API 요청 중...")
     result = generate_with_validation(
         prompt=prompt,
         validator=validate_pr_response,
@@ -104,6 +115,7 @@ def run_pr(args):
     return result
 
 def print_result(result, mode):
+    print("[DONE] 메시지 생성 완료")
     if mode == "commit":
         print("--- Commit Message ---")
         print(result)

@@ -47,3 +47,19 @@ def get_git_diff():
         raise RuntimeError(GIT_DIFF_ERR_MSG) from e
     except FileNotFoundError as e:
         raise RuntimeError(GIT_NOT_FOUND_MSG) from e
+
+def get_current_branch():
+    """현재 브랜치 이름 반환"""
+    try:
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError("현재 브랜치 정보를 가져오지 못했습니다.") from e
+    except FileNotFoundError as e:
+        raise RuntimeError(GIT_NOT_FOUND_MSG) from e
